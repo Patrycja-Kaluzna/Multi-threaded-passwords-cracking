@@ -4,16 +4,19 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <signal.h>
+#include <errno.h>
 
 #define THREADS_NUMBER 4
 
-int consumer_ended = 0;
-int number_of_lines, number_of_passwords;
-int found_passwords[1000];
-int j, first_try = 1;
+struct found_password {
+    int number;
+    char* password;
+};
+int j, fp = 0, pp = 0, consumer_ended = 0, found_passwords[1000], number_of_lines, number_of_passwords;
+struct found_password passwords_tab[1000];
+char passwords[1000][33];
 char** dictionary;
 char* password;
-char passwords[1000][33];
 pthread_mutex_t mutex;
 pthread_cond_t cond;
 
@@ -33,11 +36,16 @@ void bytes2md5 (const char* data, int len, char* md5buf) {
 }
 
 void* producer_1 (void* t1) {
-    int a = 1, b = 11, i, o, k, l, n = 10, m = 2, first = 1, unlocked = 1;
+    int a = 1, b = 11, i, o, k, l, n = 10, m = 2, first = 1, unlocked = 1, p1f = 1;
     char* number1, * number2, * pom;
     char md5[33];
 
-    pthread_mutex_lock(&mutex); printf("P1: muteks zablokowany\n\n");
+    if (p1f == 1) {
+        sleep(1);
+        p1f = 0;
+    }
+
+    pthread_mutex_lock(&mutex); //printf("P1: muteks zablokowany\n\n");
     for (i = 0; i < number_of_lines; i++) {
         password = (char*)malloc(sizeof(dictionary[i]));
         strcpy(password, dictionary[i]);
@@ -45,17 +53,20 @@ void* producer_1 (void* t1) {
         for (o = 0; o < number_of_passwords; o++) {
             if (found_passwords[o] == 0) {
                 if (strcmp(md5, passwords[o]) == 0) {
-                    j = o;
-                    pthread_cond_signal(&cond); printf("P1: wyslano sygnal\n\n");
-                    pthread_mutex_unlock(&mutex); printf("P1: muteks odblokowany\n\n");
+                    found_passwords[o] = 1;
+                    passwords_tab[fp].number = o;
+                    passwords_tab[fp].password = password;
+                    fp++;
+                    pthread_cond_signal(&cond); //printf("P1: wyslano sygnal\n\n");
+                    pthread_mutex_unlock(&mutex); //printf("P1: muteks odblokowany\n\n");
                     while (consumer_ended == 0) {}
                     consumer_ended = 0;
-                    pthread_mutex_lock(&mutex); printf("P1: muteks zablokowany\n\n");
+                    pthread_mutex_lock(&mutex); //printf("P1: muteks zablokowany\n\n");
                 }
             }
         }
-        pthread_mutex_unlock(&mutex); printf("P1: muteks odblokowany\n\n");
-        pthread_mutex_lock(&mutex); printf("P1: muteks zablokowany\n\n");
+        pthread_mutex_unlock(&mutex); //printf("P1: muteks odblokowany\n\n");
+        pthread_mutex_lock(&mutex); //printf("P1: muteks zablokowany\n\n");
     }
 
     while (1) {
@@ -77,17 +88,20 @@ void* producer_1 (void* t1) {
                     for (l = 0; l < number_of_passwords; l++) {
                         if (found_passwords[l] == 0) {
                             if (strcmp(md5, passwords[l]) == 0) {
-                                j = l;
-                                pthread_cond_signal(&cond); printf("P1: wyslano sygnal\n\n");
-                                pthread_mutex_unlock(&mutex); printf("P1: muteks odblokowany\n\n");
+                                found_passwords[l] = 1;
+                                passwords_tab[fp].number = l;
+                                passwords_tab[fp].password = password;
+                                fp++;
+                                pthread_cond_signal(&cond); //printf("P1: wyslano sygnal\n\n");
+                                pthread_mutex_unlock(&mutex); //printf("P1: muteks odblokowany\n\n");
                                 while (consumer_ended == 0) {}
                                 consumer_ended = 0;
-                                pthread_mutex_lock(&mutex); printf("P1: muteks zablokowany\n\n");
+                                pthread_mutex_lock(&mutex); //printf("P1: muteks zablokowany\n\n");
                             }
                         }
                     }
-                    pthread_mutex_unlock(&mutex); printf("P1: muteks odblokowany\n\n");
-                    pthread_mutex_lock(&mutex); printf("P1: muteks zablokowany\n\n");
+                    pthread_mutex_unlock(&mutex); //printf("P1: muteks odblokowany\n\n");
+                    pthread_mutex_lock(&mutex); //printf("P1: muteks zablokowany\n\n");
                 }
             }
             free(number2);
@@ -110,11 +124,16 @@ void* producer_1 (void* t1) {
 }
 
 void* producer_2 (void* t2) {
-    int a = 1, b = 11, i, o, k, l, n = 10, m = 2, first = 1, unlocked = 1;
+    int a = 1, b = 11, i, o, k, l, n = 10, m = 2, first = 1, unlocked = 1, p2f = 1;
     char* number1, * number2, * pom;
     char md5[33];
 
-    pthread_mutex_lock(&mutex); printf("P2: muteks zablokowany\n\n");
+    if (p2f == 1) {
+        sleep(1);
+        p2f = 0;
+    }
+
+    pthread_mutex_lock(&mutex); //printf("P2: muteks zablokowany\n\n");
     for (i = 0; i < number_of_lines; i++) {
         password = (char*)malloc(sizeof(dictionary[i]));
         strcpy(password, dictionary[i]);
@@ -123,17 +142,20 @@ void* producer_2 (void* t2) {
         for (o = 0; o < number_of_passwords; o++) {
             if (found_passwords[o] == 0) {
                 if (strcmp(md5, passwords[o]) == 0) {
-                    j = o;
-                    pthread_cond_signal(&cond); printf("P2: wyslano sygnal\n\n");
-                    pthread_mutex_unlock(&mutex); printf("P2: muteks odblokowany\n\n");
+                    found_passwords[o] = 1;
+                    passwords_tab[fp].number = o;
+                    passwords_tab[fp].password = password;
+                    fp++;
+                    pthread_cond_signal(&cond); //printf("P2: wyslano sygnal\n\n");
+                    pthread_mutex_unlock(&mutex); //printf("P2: muteks odblokowany\n\n");
                     while (consumer_ended == 0) {}
                     consumer_ended = 0;
-                    pthread_mutex_lock(&mutex); printf("P2: muteks zablokowany\n\n");
+                    pthread_mutex_lock(&mutex); //printf("P2: muteks zablokowany\n\n");
                 }
             }
         }
-        pthread_mutex_unlock(&mutex); printf("P2: muteks odblokowany\n\n");
-        pthread_mutex_lock(&mutex); printf("P2: muteks zablokowany\n\n");
+        pthread_mutex_unlock(&mutex); //printf("P2: muteks odblokowany\n\n");
+        pthread_mutex_lock(&mutex); //printf("P2: muteks zablokowany\n\n");
     }
 
     while (1) {
@@ -156,17 +178,20 @@ void* producer_2 (void* t2) {
                     for (l = 0; l < number_of_passwords; l++) {
                         if (found_passwords[l] == 0) {
                             if (strcmp(md5, passwords[l]) == 0) {
-                                j = l;
-                                pthread_cond_signal(&cond); printf("P2: wyslano sygnal\n\n");
-                                pthread_mutex_unlock(&mutex); printf("P2: muteks odblokowany\n\n");
+                                found_passwords[l] = 1;
+                                passwords_tab[fp].number = l;
+                                passwords_tab[fp].password = password;
+                                fp++;
+                                pthread_cond_signal(&cond); //printf("P2: wyslano sygnal\n\n");
+                                pthread_mutex_unlock(&mutex); //printf("P2: muteks odblokowany\n\n");
                                 while (consumer_ended == 0) {}
                                 consumer_ended = 0;
-                                pthread_mutex_lock(&mutex); printf("P2: muteks zablokowany\n\n");
+                                pthread_mutex_lock(&mutex); //printf("P2: muteks zablokowany\n\n");
                             }
                         }
                     }
-                    pthread_mutex_unlock(&mutex); printf("P2: muteks odblokowany\n\n");
-                    pthread_mutex_lock(&mutex); printf("P2: muteks zablokowany\n\n");
+                    //pthread_mutex_unlock(&mutex); printf("P2: muteks odblokowany\n\n");
+                    //pthread_mutex_lock(&mutex); printf("P2: muteks zablokowany\n\n");
                 }
             }
             free(number2);
@@ -188,13 +213,17 @@ void* producer_2 (void* t2) {
     pthread_exit(NULL);
 }
 
-/*
 void* producer_3 (void* t3) {
-    int a = 1, b = 11, i, k, l, n = 10, m = 2, o, p, first = 1, unlocked = 1;
+    int a = 1, b = 11, i, k, l, n = 10, m = 2, o, p, first = 1, unlocked = 1, p3f = 1;
     char* number1, * number2, * pom;
     char md5[33];
 
-    pthread_mutex_lock(&mutex); printf("P3: muteks zablokowany\n\n");
+    if (p3f == 1) {
+        sleep(1);
+        p3f = 0;
+    }
+
+    pthread_mutex_lock(&mutex); //printf("P3: muteks zablokowany\n\n");
     for (i = 0; i < number_of_lines; i++) {
         password = (char*)malloc(sizeof(dictionary[i]));
         strcpy(password, dictionary[i]);
@@ -205,17 +234,20 @@ void* producer_3 (void* t3) {
         for (o = 0; o < number_of_passwords; o++) {
             if (found_passwords[o] == 0) {
                 if (strcmp(md5, passwords[o]) == 0) {
-                    j = o;
-                    pthread_cond_signal(&cond); printf("P3: wyslano sygnal\n\n");
-                    pthread_mutex_unlock(&mutex); printf("P3: muteks odblokowany\n\n");
+                    found_passwords[o] = 1;
+                    passwords_tab[fp].number = o;
+                    passwords_tab[fp].password = password;
+                    fp++;
+                    pthread_cond_signal(&cond); //printf("P3: wyslano sygnal\n\n");
+                    pthread_mutex_unlock(&mutex); //printf("P3: muteks odblokowany\n\n");
                     while (consumer_ended == 0) {}
                     consumer_ended = 0;
-                    pthread_mutex_lock(&mutex); printf("P3: muteks zablokowany\n\n");
+                    pthread_mutex_lock(&mutex); //printf("P3: muteks zablokowany\n\n");
                 }
             }
         }
-        pthread_mutex_unlock(&mutex); printf("P3: muteks odblokowany\n\n");
-        pthread_mutex_lock(&mutex); printf("P3: muteks zablokowany\n\n");
+        pthread_mutex_unlock(&mutex); //printf("P3: muteks odblokowany\n\n");
+        pthread_mutex_lock(&mutex); //printf("P3: muteks zablokowany\n\n");
     }
 
     while (1) {
@@ -240,17 +272,20 @@ void* producer_3 (void* t3) {
                     for (l = 0; l < number_of_passwords; l++) {
                         if (found_passwords[l] == 0) {
                             if (strcmp(md5, passwords[l]) == 0) {
-                                j = l;
-                                pthread_cond_signal(&cond); printf("P3: wyslano sygnal\n\n");
-                                pthread_mutex_unlock(&mutex); printf("P3: muteks odblokowany\n\n");
+                                found_passwords[o] = 1;
+                                passwords_tab[fp].number = l;
+                                passwords_tab[fp].password = password;
+                                fp++;
+                                pthread_cond_signal(&cond); //printf("P3: wyslano sygnal\n\n");
+                                pthread_mutex_unlock(&mutex); //printf("P3: muteks odblokowany\n\n");
                                 while (consumer_ended == 0) {}
                                 consumer_ended = 0;
-                                pthread_mutex_lock(&mutex); printf("P3: muteks zablokowany\n\n");
+                                pthread_mutex_lock(&mutex); //printf("P3: muteks zablokowany\n\n");
                             }
                         }
                     }
-                    pthread_mutex_unlock(&mutex); printf("P3: muteks odblokowany\n\n");
-                    pthread_mutex_lock(&mutex); printf("P3: muteks zablokowany\n\n");
+                    pthread_mutex_unlock(&mutex); //printf("P3: muteks odblokowany\n\n");
+                    pthread_mutex_lock(&mutex); //printf("P3: muteks zablokowany\n\n");
                 }
             }
             free(number2);
@@ -271,26 +306,14 @@ void* producer_3 (void* t3) {
 
     pthread_exit(NULL);
 }
-*/
 
-void* handler_thread (void* t4) {
-    int i, counter = 0;
-    sigset_t set;
-    int* sig;
-    
-    sigemptyset(&set);
-    sigaddset(&set, SIGHUP);
+void* handler (void* arg) {
+    sigset_t* set = arg;
+    int sig;
+
     while (1) {
-        if (sigwait(&set, sig) >= 0) { //Tutaj nie wchodzi
-            printf("TEST\n");
-            pthread_mutex_lock(&mutex); printf("H: muteks zablokowany\n\n");
-            for (i = 0; 0 < number_of_passwords; i++) {
-                if (found_passwords[i] == 1) {
-                    counter++;
-                }
-            }
-            printf("Znaleziono %d haseł.\n", counter);
-            pthread_mutex_unlock(&mutex); printf("H: muteks odblokowany\n\n");   
+        if (sigwait(set, &sig) == 0) {
+            printf("Znaleziono %d haseł.\n", fp);
         }
     }
 
@@ -300,9 +323,9 @@ void* handler_thread (void* t4) {
 int main () {
     char* dictionary_file = (char*)malloc(50 * sizeof(char));
     char* passwords_file = (char*)malloc(50 * sizeof(char));
-    pthread_t threads[THREADS_NUMBER];
-    int k, counter = 0, all_found = 0;
     long t1 = 1, t2 = 2, t3 = 3, t4 = 4;
+    int k, counter = 0, all_found = 0;
+    pthread_t threads[THREADS_NUMBER];
 
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init (&cond, NULL);
@@ -324,20 +347,22 @@ int main () {
     sigset_t set;
     sigemptyset(&set);
     sigaddset(&set, SIGHUP);
-    pthread_create(&threads[3], NULL, handler_thread, (void *)t4);
     pthread_sigmask(SIG_BLOCK, &set, NULL);
+    pthread_create(&threads[3], NULL, handler, &set);
+    //pthread_sigmask(SIG_BLOCK, &set, NULL);
     pthread_create(&threads[0], NULL, producer_1, (void *)t1);
     pthread_create(&threads[1], NULL, producer_2, (void *)t2);
-    //pthread_create(&threads[2], NULL, producer_3, (void *)t3);
+    pthread_create(&threads[2], NULL, producer_3, (void *)t3);
 
     while (all_found == 0) {
-        pthread_mutex_lock(&mutex); printf("K: muteks zablokowany\n\n");
-        pthread_cond_wait(&cond, &mutex); printf("K: otrzymano sygnal\n\n");
-        found_passwords[j] = 1;
-        printf("Found the password number %d - %s\n", (j + 1) , password);
-        sleep(5);
+        pthread_mutex_lock(&mutex); //printf("K: muteks zablokowany\n\n");
+        pthread_cond_wait(&cond, &mutex); //printf("K: otrzymano sygnal\n\n");
+        while (pp < fp) {
+            printf("Found the password number %d - %s\n", (passwords_tab[pp].number + 1) , passwords_tab[pp].password);
+            pp++;
+        }
         consumer_ended = 1;
-        pthread_mutex_unlock(&mutex); printf("K: muteks odblokowany\n\n");
+        pthread_mutex_unlock(&mutex); //printf("K: muteks odblokowany\n\n");
         for (k = 0; k < number_of_passwords; k++) {
             if (found_passwords[k] == 1) {
                 counter++;
